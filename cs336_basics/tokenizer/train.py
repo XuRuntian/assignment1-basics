@@ -17,7 +17,7 @@ def find_chunk_boundaries(
     file.seek(0, os.SEEK_END)
     file_size = file.tell()
     file.seek(0)
-
+    # 这里是整除
     chunk_size = file_size // desired_num_chunks
 
     # Initial guesses for chunk boundary locations, uniformly spaced
@@ -28,44 +28,35 @@ def find_chunk_boundaries(
     mini_chunk_size = 4096  # Read ahead by 4k bytes at a time
 
     for bi in range(1, len(chunk_boundaries) - 1):
-        initial_position = chunk_boundaries[bi]
-        file.seek(initial_position)  # Start at boundary guess
+        overleap = len(split_special_token) - 1  # How many bytes to overlap when reading mini chunks 
+        tail = b""  # tail：保存上一次读取末尾的几个字节，防止特殊 token 被截断
         while True:
-            mini_chunk = file.read(mini_chunk_size)  # Read a mini chunk
+            data = file.read(mini_chunk_size)  # Read a mini chunk
 
             # If EOF, this boundary should be at the end of the file
-            if mini_chunk == b"":
+            if not data:
                 chunk_boundaries[bi] = file_size
                 break
-
+            mini_chunk = tail + data  # Prepend the tail from the previous mini chunk
             # Find the special token in the mini chunk
             found_at = mini_chunk.find(split_special_token)
             if found_at != -1:
-                chunk_boundaries[bi] = initial_position + found_at
+                chunk_boundaries[bi] = file.tell() - len(mini_chunk) + found_at # 计算绝对位置
                 break
-            initial_position += mini_chunk_size
+            tail = mini_chunk[-overleap:] if overleap else b""  
 
     # Make sure all boundaries are unique, but might be fewer than desired_num_chunks
     return sorted(set(chunk_boundaries))
 
-
-## Usage
-with open(..., "rb") as f:
-    num_processes = 4
-    boundaries = find_chunk_boundaries(f, num_processes, b"<|endoftext|>")
-
-    # The following is a serial implementation, but you can parallelize this
-    # by sending each start/end pair to a set of processes.
-    for start, end in zip(boundaries[:-1], boundaries[1:]):
-        f.seek(start)
-        chunk = f.read(end - start).decode("utf-8", errors="ignore")
-        # Run pre-tokenization on your chunk and store the counts for each pre-token
 def train_bpe(input_path:str, vocab_size:int, special_token: list):
     vocab = {} 
     merges = []
+    num_processes = 4
+    special_token = b"endoftext"  # Define the special token as a bytestring
+    with open(input_path, "rb") as f:
+        boundaries = find_chunk_boundaries(f, num_processes, special_token)
 
-    # load data
-    with open(input_path) as f:
-        content = f.read()
-    
+    for start, end in zip(boundaries[:-1], boundaries[1:]):
+        f.seek(start)
+        chunk = f.read(end - start).decode("utf-8", errors="ignore")
     
