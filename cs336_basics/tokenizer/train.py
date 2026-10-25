@@ -51,6 +51,11 @@ def find_chunk_boundaries(
 def train_bpe(input_path:str, vocab_size:int, special_token: list):
     vocab = {} 
     merges = []
+    # vocabulary initialization
+    for i in range(256):
+        vocab[i] = bytes(i)    
+    
+
     num_processes = 4
     special_token = b"endoftext"  # Define the special token as a bytestring
     with open(input_path, "rb") as f:
@@ -59,4 +64,3 @@ def train_bpe(input_path:str, vocab_size:int, special_token: list):
     for start, end in zip(boundaries[:-1], boundaries[1:]):
         f.seek(start)
         chunk = f.read(end - start).decode("utf-8", errors="ignore")
-    
