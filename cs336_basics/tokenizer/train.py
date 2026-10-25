@@ -57,6 +57,15 @@ def count_chunk_vocab(chunk: str, PAT: str):
             vocab_count[vocabulary] += 1
         else:
             vocab_count[vocabulary]
+def merge_chunk_counts(all_chunk_vocab_count: list):
+    pre_tokenization_vocab_count = {}
+    for chunk in all_chunk_vocab_count:
+        for vocab in chunk:
+            if pre_tokenization_vocab_count[vocab]:
+                pre_tokenization_vocab_count[vocab] = vocab
+            else:
+                pre_tokenization_vocab_count[vocab] += vocab
+
 def train_bpe(input_path:str, vocab_size:int, special_token: list):
     vocab = {} 
     merges = []
@@ -69,11 +78,12 @@ def train_bpe(input_path:str, vocab_size:int, special_token: list):
 
     num_processes = 4
     special_token = b"endoftext"  # Define the special token as a bytestring
+    all_chunk_vocab_count = []
     with open(input_path, "rb") as f:
         boundaries = find_chunk_boundaries(f, num_processes, special_token)
-        per_tokenization_vocab_summary = {}
         for start, end in zip(boundaries[:-1], boundaries[1:]):
             f.seek(start)
             chunk = f.read(end - start).decode("utf-8", errors="ignore")
-            vocab_count = count_chunk_vocab(chunk, PAT)
-            
+    all_chunk_vocab_count.append(count_chunk_vocab(chunk, PAT))
+    pre_tokenization_count = merge_chunk_counts(all_chunk_vocab_count)
+           
