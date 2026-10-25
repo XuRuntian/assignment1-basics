@@ -1,6 +1,6 @@
 import os
 from typing import BinaryIO
-
+import regex as re
 
 def find_chunk_boundaries(
     file: BinaryIO,
@@ -28,6 +28,7 @@ def find_chunk_boundaries(
     mini_chunk_size = 4096  # Read ahead by 4k bytes at a time
 
     for bi in range(1, len(chunk_boundaries) - 1):
+        file.seek(chunk_boundaries[bi]) 
         overleap = len(split_special_token) - 1  # How many bytes to overlap when reading mini chunks 
         tail = b""  # tail：保存上一次读取末尾的几个字节，防止特殊 token 被截断
         while True:
@@ -47,10 +48,20 @@ def find_chunk_boundaries(
 
     # Make sure all boundaries are unique, but might be fewer than desired_num_chunks
     return sorted(set(chunk_boundaries))
-
+# 统计count中词语数量
+def count_chunk_vocab(chunk: str, PAT: str):
+    matches = re.finditer(PAT, chunk)
+    vocab_count = {}
+    for vocabulary in matches:
+        if vocab_count[vocabulary]:
+            vocab_count[vocabulary] += 1
+        else:
+            vocab_count[vocabulary]
 def train_bpe(input_path:str, vocab_size:int, special_token: list):
     vocab = {} 
     merges = []
+    # pertokenization rule
+    PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
     # vocabulary initialization
     for i in range(256):
         vocab[i] = bytes(i)    
@@ -60,7 +71,9 @@ def train_bpe(input_path:str, vocab_size:int, special_token: list):
     special_token = b"endoftext"  # Define the special token as a bytestring
     with open(input_path, "rb") as f:
         boundaries = find_chunk_boundaries(f, num_processes, special_token)
-
-    for start, end in zip(boundaries[:-1], boundaries[1:]):
-        f.seek(start)
-        chunk = f.read(end - start).decode("utf-8", errors="ignore")
+        per_tokenization_vocab_summary = {}
+        for start, end in zip(boundaries[:-1], boundaries[1:]):
+            f.seek(start)
+            chunk = f.read(end - start).decode("utf-8", errors="ignore")
+            vocab_count = count_chunk_vocab(chunk, PAT)
+            
