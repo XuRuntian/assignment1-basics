@@ -60,7 +60,7 @@ def count_chunk_vocab(chunk: str, PAT: str):
 def merge_chunk_counts(all_chunk_vocab_count: list):
     pre_tokenization_vocab_count = {}
     for chunk in all_chunk_vocab_count:
-        for vocab, val in chunk:
+        for vocab, val in chunk.items():
             if vocab not in pre_tokenization_vocab_count:
                 pre_tokenization_vocab_count[vocab] = val
             else:
