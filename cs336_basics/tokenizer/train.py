@@ -119,8 +119,13 @@ def train_bpe(input_path:str, vocab_size:int, special_token: bytes):
     num_processes = 4
     
     all_chunk_vocab_count = [] #[{some:1},{xxx,:2}]
+    if vocab_size < 257:
+        raise ValueError("vocab_size must be >= 257")
+    if not special_token:
+        raise ValueError("special_token cannot be empty")
     # vocabulary initialization
     token_num = 0
+    
     for _ in range(256):
         vocab[token_num] = bytes([token_num])    
         token_num += 1
@@ -148,7 +153,7 @@ def train_bpe(input_path:str, vocab_size:int, special_token: bytes):
             break
         new_token = max_pair[0] + max_pair[1]
         vocab[token_num] = new_token
-        merges.append(new_token)
+        merges.append(max_pair)
         token_num += 1
         
     return vocab, merges
