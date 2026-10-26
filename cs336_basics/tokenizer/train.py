@@ -56,7 +56,7 @@ def count_chunk_vocab(chunk: str, PAT: str):
         if vocab_count[vocabulary]:
             vocab_count[vocabulary] += 1
         else:
-            vocab_count[vocabulary]
+            vocab_count[vocabulary] = 1
 def merge_chunk_counts(all_chunk_vocab_count: list):
     pre_tokenization_vocab_count = {}
     for chunk in all_chunk_vocab_count:
@@ -66,18 +66,56 @@ def merge_chunk_counts(all_chunk_vocab_count: list):
             else:
                 pre_tokenization_vocab_count[vocab] += vocab
 
+def init_per_vocab(pre_token:dict):
+    per_vocab = {}
+    for key in pre_token:
+            per_vocab[key] = [c for c in key]
+    return per_vocab
+
+def merge_char():
+    pass
+def merges_token(per_vocab: dict, pre_token: dict):
+    pairs = {}
+    # create pairs
+    # piars: {"ab":1}
+    # per_vocab: {"abc": ['a', 'b', 'c']} 合并之后会变化
+    # pre_token: {"some": 3}
+    # pairs: {("ab"): 3,....} 每个词中pair出现频率*词频率
+    for vocab in per_vocab:
+        tokens = per_vocab[vocab]
+        for i in range(len(tokens) - 1):
+            pair = (tokens[i], tokens[i+1])
+
+            if pair not in pairs:
+                pairs[pair] = 0
+            pairs[pair] += pre_token[vocab]
+
+    # max_pair是字典
+    max_pair = max(pairs, key=pairs.get)
+    # update per_vocab
+    for vocab in per_vocab:
+        tokens = per_vocab[vocab]
+        new_tokens = []
+        while i < len(tokens):
+            if i < len(tokens) - 1 and tokens[i] + tokens[i+1] == max_pair:
+                new_tokens.append(tokens[i]+tokens[i+1])
+                i+=2
+            else:
+                new_tokens.append(tokens[i])
+                i+=1
+        per_vocab[vocab] = new_tokens
+    return per_vocab, max_pair
 def train_bpe(input_path:str, vocab_size:int, special_token: list):
     vocab = {} 
-    merges = []
     # pertokenization rule
     PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
     # vocabulary initialization
     for i in range(256):
         vocab[i] = bytes(i)    
-    
+    vocab.update({"<|endoftext|>":bytes("<|endoftext|>")})
 
     num_processes = 4
-    special_token = b"endoftext"  # Define the special token as a bytestring
+    special_token = b"<|endoftext|>"  # Define the special token as a bytestring
     all_chunk_vocab_count = []
     with open(input_path, "rb") as f:
         boundaries = find_chunk_boundaries(f, num_processes, special_token)
@@ -86,4 +124,16 @@ def train_bpe(input_path:str, vocab_size:int, special_token: list):
             chunk = f.read(end - start).decode("utf-8", errors="ignore")
     all_chunk_vocab_count.append(count_chunk_vocab(chunk, PAT))
     pre_tokenization_count = merge_chunk_counts(all_chunk_vocab_count)
-           
+
+    # merge
+    per_vocab = init_per_vocab(pre_token=pre_tokenization_count) # init
+    while len(vocab) <= vocab_size:
+
+        per_vocab,max_pair = merges_token(per_vocab=per_vocab, pre_token=pre_tokenization_count)
+        max_key = max_pair.keys()
+        vocab.update({max_key:bytes(max_key)}) 
+        
+    
+    return vocab
+
+    
