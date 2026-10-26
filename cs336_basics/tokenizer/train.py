@@ -122,8 +122,9 @@ def train_bpe(input_path:str, vocab_size:int, special_token: list[str]):
     special_token_bytes = [token.encode('utf-8')for token in special_token]
     if vocab_size < 256 + len(special_token_bytes):
         raise ValueError("vocab_size must be >= 257")
-    if not special_token:
+    if not special_token_bytes:
         raise ValueError("special_token cannot be empty")
+    special_token_bytes = list(dict.fromkeys(special_token_bytes)) #去重
     # vocabulary initialization
     token_num = 0
 
