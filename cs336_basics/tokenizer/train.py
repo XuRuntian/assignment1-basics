@@ -51,6 +51,7 @@ def find_chunk_boundaries(
 # 统计count中词语数量
 def count_chunk_vocab(chunk: str, PAT: str):
     matches = re.finditer(PAT, chunk)
+    
     vocab_count = {}
     for vocabulary in matches:
         if vocabulary.group() not in vocab_count:
@@ -72,8 +73,6 @@ def init_per_vocab(pre_token:dict):
         per_vocab[key] = [bytes([b]) for b in key.encode('utf-8')]
     return per_vocab
 
-def merge_char():
-    pass
 def merges_token(per_vocab: dict, pre_token: dict):
     pairs = {}
     # create pairs
@@ -83,13 +82,15 @@ def merges_token(per_vocab: dict, pre_token: dict):
     # pairs: {("ab"): 3,....} 每个词中pair出现频率*词频率
     for vocab in per_vocab:
         tokens = per_vocab[vocab]
+        if len(tokens) == 1:
+            continue
         for i in range(len(tokens) - 1):
             pair = (tokens[i], tokens[i+1])
-
             if pair not in pairs:
                 pairs[pair] = 0
             pairs[pair] += pre_token[vocab]
-
+    if not pairs:
+        return per_vocab, None
     # max_pair是字典
     max_pair = max(pairs, key=lambda pair: (pairs[pair], pair))
     # update per_vocab
@@ -107,14 +108,16 @@ def merges_token(per_vocab: dict, pre_token: dict):
 
         per_vocab[vocab] = new_tokens
     return per_vocab, max_pair
-def train_bpe(input_path:str, vocab_size:int, special_token: list):
+# special_token = b"<|endoftext|>"  # Define the special token as a bytestring
+def train_bpe(input_path:str, vocab_size:int, special_token: bytes):
     vocab = {} 
+    merges = []
     # pertokenization rule
     PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
 
 
     num_processes = 4
-    special_token = b"<|endoftext|>"  # Define the special token as a bytestring
+    
     all_chunk_vocab_count = [] #[{some:1},{xxx,:2}]
     # vocabulary initialization
     token_num = 0
@@ -127,9 +130,13 @@ def train_bpe(input_path:str, vocab_size:int, special_token: list):
         boundaries = find_chunk_boundaries(f, num_processes, special_token)
         for start, end in zip(boundaries[:-1], boundaries[1:]):
             f.seek(start)
-            chunk = f.read(end - start).decode("utf-8", errors="ignore")
-    
-            all_chunk_vocab_count.append(count_chunk_vocab(chunk, PAT))
+            chunk = f.read(end - start)
+            # remove特殊token
+            parts = chunk.split(special_token)
+            for part in parts:
+                if not part:
+                    continue
+                all_chunk_vocab_count.append(count_chunk_vocab(part.decode("utf-8", errors= "ignore"), PAT))
     pre_tokenization_count = merge_chunk_counts(all_chunk_vocab_count)
 
     # merge
@@ -137,12 +144,13 @@ def train_bpe(input_path:str, vocab_size:int, special_token: list):
     while len(vocab) < vocab_size:
 
         per_vocab,max_pair = merges_token(per_vocab=per_vocab, pre_token=pre_tokenization_count)
-        max_key= b""
-        for token in max_pair:
-            max_key += token
-        vocab.update({token_num:max_key}) 
+        if  max_pair is None:
+            break
+        new_token = max_pair[0] + max_pair[1]
+        vocab[token_num] = new_token
+        merges.append(new_token)
         token_num += 1
-    
-    return vocab
+        
+    return vocab, merges
 
     
