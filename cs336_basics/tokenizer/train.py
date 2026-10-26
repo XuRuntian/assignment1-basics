@@ -111,14 +111,18 @@ def train_bpe(input_path:str, vocab_size:int, special_token: list):
     vocab = {} 
     # pertokenization rule
     PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
-    # vocabulary initialization
-    for i in range(256):
-        vocab[i] = bytes(i)    
-    vocab.update({"<|endoftext|>":bytes("<|endoftext|>")})
+
 
     num_processes = 4
     special_token = b"<|endoftext|>"  # Define the special token as a bytestring
     all_chunk_vocab_count = [] #[{some:1},{xxx,:2}]
+    # vocabulary initialization
+    token_num = 0
+    for _ in range(256):
+        vocab[token_num] = bytes([token_num])    
+        token_num += 1
+    vocab.update({token_num: special_token})
+    token_num += 1
     with open(input_path, "rb") as f:
         boundaries = find_chunk_boundaries(f, num_processes, special_token)
         for start, end in zip(boundaries[:-1], boundaries[1:]):
@@ -130,12 +134,14 @@ def train_bpe(input_path:str, vocab_size:int, special_token: list):
 
     # merge
     per_vocab = init_per_vocab(pre_token=pre_tokenization_count) # init
-    while len(vocab) <= vocab_size:
+    while len(vocab) < vocab_size:
 
         per_vocab,max_pair = merges_token(per_vocab=per_vocab, pre_token=pre_tokenization_count)
-        max_key = max_pair.keys()
-        vocab.update({max_key:bytes(max_key)}) 
-        
+        max_key= b""
+        for token in max_pair:
+            max_key += token
+        vocab.update({token_num:max_key}) 
+        token_num += 1
     
     return vocab
 
