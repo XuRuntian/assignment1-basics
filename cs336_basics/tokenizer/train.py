@@ -5,13 +5,13 @@ import regex as re
 def find_chunk_boundaries(
     file: BinaryIO,
     desired_num_chunks: int,
-    split_special_token: bytes,
+    split_special_token: list[bytes],
 ) -> list[int]:
     """
     Chunk the file into parts that can be counted independently.
     May return fewer chunks if the boundaries end up overlapping.
     """
-    assert isinstance(split_special_token, bytes), "Must represent special token as a bytestring"
+    assert all(isinstance(item, bytes) for item in split_special_token), "All elements in the list must be bytestrings"
 
     # Get total file size in bytes
     file.seek(0, os.SEEK_END)
@@ -29,7 +29,7 @@ def find_chunk_boundaries(
 
     for bi in range(1, len(chunk_boundaries) - 1):
         file.seek(chunk_boundaries[bi]) 
-        overleap = len(split_special_token) - 1  # How many bytes to overlap when reading mini chunks 
+        overleap = len(max(split_special_token, key=len)) - 1  # 特殊token中最长的
         tail = b""  # tail：保存上一次读取末尾的几个字节，防止特殊 token 被截断
         while True:
             data = file.read(mini_chunk_size)  # Read a mini chunk
@@ -40,7 +40,7 @@ def find_chunk_boundaries(
                 break
             mini_chunk = tail + data  # Prepend the tail from the previous mini chunk
             # Find the special token in the mini chunk
-            found_at = mini_chunk.find(split_special_token)
+            found_at = min((pos for token in split_special_token if (pos := mini_chunk.find(token)) != -1), default=-1)
             if found_at != -1:
                 chunk_boundaries[bi] = file.tell() - len(mini_chunk) + found_at # 计算绝对位置
                 break
@@ -109,7 +109,7 @@ def merges_token(per_vocab: dict, pre_token: dict):
         per_vocab[vocab] = new_tokens
     return per_vocab, max_pair
 # special_token = b"<|endoftext|>"  # Define the special token as a bytestring
-def train_bpe(input_path:str, vocab_size:int, special_token: bytes):
+def train_bpe(input_path:str, vocab_size:int, special_token: list[str]):
     vocab = {} 
     merges = []
     # pertokenization rule
@@ -119,25 +119,28 @@ def train_bpe(input_path:str, vocab_size:int, special_token: bytes):
     num_processes = 4
     
     all_chunk_vocab_count = [] #[{some:1},{xxx,:2}]
-    if vocab_size < 257:
+    special_token_bytes = [token.encode('utf-8')for token in special_token]
+    if vocab_size < 256 + len(special_token_bytes):
         raise ValueError("vocab_size must be >= 257")
     if not special_token:
         raise ValueError("special_token cannot be empty")
     # vocabulary initialization
     token_num = 0
-    
+
     for _ in range(256):
         vocab[token_num] = bytes([token_num])    
         token_num += 1
-    vocab.update({token_num: special_token})
-    token_num += 1
+    for per_special_bytes in special_token_bytes:
+        vocab.update({token_num: per_special_bytes})
+        token_num += 1
     with open(input_path, "rb") as f:
-        boundaries = find_chunk_boundaries(f, num_processes, special_token)
+        boundaries = find_chunk_boundaries(f, num_processes, special_token_bytes)
         for start, end in zip(boundaries[:-1], boundaries[1:]):
             f.seek(start)
             chunk = f.read(end - start)
             # remove特殊token
-            parts = chunk.split(special_token)
+            pattern = b"|".join(re.escape(token) for token in sorted(special_token_bytes, key=len, reverse=True))
+            parts = re.split(pattern, chunk)
             for part in parts:
                 if not part:
                     continue
