@@ -138,14 +138,8 @@ def train_bpe(input_path:str, vocab_size:int, special_token: list[str]):
         boundaries = find_chunk_boundaries(f, num_processes, special_token_bytes)
         for start, end in zip(boundaries[:-1], boundaries[1:]):
             f.seek(start)
-            chunk = f.read(end - start)
-            # remove特殊token
-            pattern = b"|".join(re.escape(token) for token in sorted(special_token_bytes, key=len, reverse=True))
-            parts = re.split(pattern, chunk)
-            for part in parts:
-                if not part:
-                    continue
-                all_chunk_vocab_count.append(count_chunk_vocab(part.decode("utf-8", errors= "ignore"), PAT))
+            chunk = f.read(end - start).decode('utf-8',errors="ignore")
+            all_chunk_vocab_count.append(count_chunk_vocab(chunk, PAT))
     pre_tokenization_count = merge_chunk_counts(all_chunk_vocab_count)
 
     # merge
