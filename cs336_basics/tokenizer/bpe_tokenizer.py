@@ -2,6 +2,7 @@ from collections.abc import Iterable, Iterator
 # from cs336_basics.tokenizer.train import *
 import json
 import regex as re
+# uv run pytest tests/test_tokenizer.py::test_roundtrip_single_unicode_character -v没过
 class BPETokenizer():
     def __init__(self, vocab: dict[int, bytes], merges: list[tuple[bytes, bytes]], special_token: list[str] | None =None):
         self.vocab = vocab
