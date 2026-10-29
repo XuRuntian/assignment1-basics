@@ -52,9 +52,9 @@ class BPETokenizer():
             i = 0
             pre_char = b""
             while i < len(vocabulary) - 1:
-                pair = (pre_char + vocabulary[i], vocabulary[i+1]) 
+                pair = (pre_char + vocabulary[i:i+1], vocabulary[i+1:i+2]) 
                 if pair in self.merges:
-                    pre_char += vocabulary[i]
+                    pre_char += vocabulary[i:i+1]
                 else:
                     merged_vocabulary.append(pre_char+vocabulary[i:i+1])
                     pre_char = b""
