@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Iterator
 # from cs336_basics.tokenizer.train import *
 import json
-import re
+import regex as re
 class BPETokenizer():
     def __init__(self, vocab: dict[int, bytes], merges: list[tuple[bytes, bytes]], special_token: list[str] | None =None):
         self.vocab = vocab
@@ -36,8 +36,11 @@ class BPETokenizer():
     def encode(self, text: str) -> list[int]:
         text_split_vocabulary_bytes = []
         merged_vocabulary = []
-        pattern = "|".join(re.escape(token) for token in sorted(self.spcial_token, key=len, reverse=True))
-        parts = re.split(pattern, text)
+        if self.spcial_token:
+            pattern = "|".join(re.escape(token) for token in sorted(self.spcial_token, key=len, reverse=True))
+            parts = re.split(pattern, text)
+        else:
+            parts = text
         ids = []
         # 分割为每个词语
         for part in parts:
