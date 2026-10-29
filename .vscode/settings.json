@@ -1,3 +1,5 @@
 {
-    "editor.inlineSuggest.enabled": false
+    "editor.inlineSuggest.enabled": false,
+    "github.copilot.chat.languageContext.typescript7.enabled": true,
+    "editor.inlineSuggest.syntaxHighlightingEnabled": true
 }

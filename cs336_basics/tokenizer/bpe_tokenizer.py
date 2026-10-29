@@ -7,6 +7,7 @@ class BPETokenizer():
         self.vocab = vocab
         self.merges = merges
         self.spcial_token = special_token
+        self.vocab_trun = {v: k for k, v in self.vocab.items()}
         self.PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
     @classmethod
     def from_files(cls, vocab_filepath: str, merges_filepath: str, special_tokens: list[str] | None =None):
@@ -34,17 +35,44 @@ class BPETokenizer():
             
     def encode(self, text: str) -> list[int]:
         text_split_vocabulary_bytes = []
+        merged_vocabulary = []
         pattern = "|".join(re.escape(token) for token in sorted(self.spcial_token, key=len, reverse=True))
         parts = re.split(pattern, text)
+        ids = []
+        # 分割为每个词语
         for part in parts:
             matches = re.finditer(self.PAT, part)
-            text_split_vocabulary_bytes.extend(vocabulary.group() for vocabulary in matches)
-        
-        
+            text_split_vocabulary_bytes.extend(vocabulary.group().encode('utf-8') for vocabulary in matches)
+        # merge
+        for vocabulary in text_split_vocabulary_bytes:
+            i = 0
+            pre_char = b""
+            while i < len(vocabulary) - 1:
+                pair = (pre_char + vocabulary[i], vocabulary[i+1]) 
+                if pair in self.merges:
+                    pre_char += vocabulary[i]
+                else:
+                    merged_vocabulary.append(pre_char+vocabulary[i])
+                    pre_char = b""
+                i+=1
+            merged_vocabulary.append(pre_char+vocabulary[[i]])
+        # token化
+        for vocabulary in merged_vocabulary:
+            if vocabulary in self.vocab_trun:
+                ids.append(self.vocab_trun[vocabulary])
+            else:
+                ids.append("u+FFFD")#这里如果encode词表没有得映射
+
+        return ids
 
     def encode_iterable(self, iterable: Iterable[str]) -> Iterator[int]:
-        pass
+        for iter in iterable:
+            return self.encode(iter)
+
 
     def decode(self, ids: list[int]) -> str:
-        pass
+        text = ""
+        for id in ids:
+            text += self.vocab[id].decode('utf-8')
 
+        return text
