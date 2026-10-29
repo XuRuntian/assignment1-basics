@@ -55,10 +55,10 @@ class BPETokenizer():
                 if pair in self.merges:
                     pre_char += vocabulary[i]
                 else:
-                    merged_vocabulary.append(pre_char+vocabulary[i])
+                    merged_vocabulary.append(pre_char+vocabulary[i:i+1])
                     pre_char = b""
                 i+=1
-            merged_vocabulary.append(pre_char+vocabulary[[i]])
+            merged_vocabulary.append(pre_char+vocabulary[i:i+1])
         # token化
         for vocabulary in merged_vocabulary:
             if vocabulary in self.vocab_trun:
