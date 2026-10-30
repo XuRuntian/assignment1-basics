@@ -35,7 +35,7 @@ class BPETokenizer():
         return cls(vocab, merges, special_tokens)
             
     def encode(self, text: str) -> list[int]:
-        text_split_vocabulary_bytes = []
+        text_split_vocabulary_bytes = [] # [[b'a',b'v'],[b'c']]
         merged_vocabulary = []
         if self.spcial_token:
             pattern = "|".join(re.escape(token) for token in sorted(self.spcial_token, key=len, reverse=True))
@@ -47,19 +47,28 @@ class BPETokenizer():
         for part in parts:
             matches = re.finditer(self.PAT, part)
             text_split_vocabulary_bytes.extend(vocabulary.group().encode('utf-8') for vocabulary in matches)
-        # merge
+        for i in range(len(text_split_vocabulary_bytes)):
+            vocabulary = text_split_vocabulary_bytes[i] 
+            text_split_vocabulary_bytes[i] = []
+            for j in range(len(vocabulary)):
+                text_split_vocabulary_bytes[i].append(vocabulary[j:j+1])
+        
+        merged_vocabulary = []
         for vocabulary in text_split_vocabulary_bytes:
-            i = 0
-            pre_char = b""
-            while i < len(vocabulary) - 1:
-                pair = (pre_char + vocabulary[i:i+1], vocabulary[i+1:i+2]) 
-                if pair in self.merges:
-                    pre_char += vocabulary[i:i+1]
+            while len(vocabulary) > 1:
+                pairs = []
+                for i in range(len(vocabulary) - 1):
+                    pairs.append((vocabulary[i], vocabulary[i+1]))
+                # 合并
+                for merge in self.merges:
+                    if merge in pairs:
+                        index = pairs.index(merge)
+                        vocabulary[index:index+2] = [vocabulary[index] + vocabulary[index+1]] #合并为一个byte元素放入，而不是数值相加
+                        break
                 else:
-                    merged_vocabulary.append(pre_char+vocabulary[i:i+1])
-                    pre_char = b""
-                i+=1
-            merged_vocabulary.append(pre_char+vocabulary[i:i+1])
+                    break
+            merged_vocabulary.extend(token for token in vocabulary)
+
         # token化
         for vocabulary in merged_vocabulary:
             if vocabulary in self.vocab_trun:
