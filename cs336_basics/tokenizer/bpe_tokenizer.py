@@ -46,7 +46,7 @@ class BPETokenizer():
         # 分割为每个词语
         for part in parts:
             matches = re.finditer(self.PAT, part)
-            text_split_vocabulary_bytes.extend(vocabulary.group() for vocabulary in matches)
+            text_split_vocabulary_bytes.extend(vocabulary.group().encode('utf-8') for vocabulary in matches)
         # merge
         for vocabulary in text_split_vocabulary_bytes:
             i = 0
