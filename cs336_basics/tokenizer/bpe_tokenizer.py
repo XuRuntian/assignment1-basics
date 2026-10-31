@@ -38,17 +38,24 @@ class BPETokenizer():
         text_split_vocabulary_bytes = [] # [[b'a',b'v'],[b'c']]
         merged_vocabulary = []
         if self.spcial_token:
-            pattern = "|".join(re.escape(token) for token in sorted(self.spcial_token, key=len, reverse=True))
+            pattern = "("+ "|".join(re.escape(token) for token in sorted(self.spcial_token, key=len, reverse=True)) + ")" #正则表达组捕获
             parts = re.split(pattern, text)
         else:
             parts = text
         ids = []
         # 分割为每个词语
         for part in parts:
+            if part in self.spcial_token:
+                text_split_vocabulary_bytes.extend([part.encode('utf-8')]) # 特殊token作为整体送入
+                continue
             matches = re.finditer(self.PAT, part)
             text_split_vocabulary_bytes.extend(vocabulary.group().encode('utf-8') for vocabulary in matches)
+                
         for i in range(len(text_split_vocabulary_bytes)):
             vocabulary = text_split_vocabulary_bytes[i] 
+            if vocabulary.decode('utf-8') in self.spcial_token:
+                text_split_vocabulary_bytes[i] = [vocabulary]
+                continue
             text_split_vocabulary_bytes[i] = []
             for j in range(len(vocabulary)):
                 text_split_vocabulary_bytes[i].append(vocabulary[j:j+1])
@@ -74,7 +81,7 @@ class BPETokenizer():
             if vocabulary in self.vocab_trun:
                 ids.append(self.vocab_trun[vocabulary])
             else:
-                ids.append("u+FFFD")#这里如果encode词表没有得映射
+                print(f"遇到不存在的id对应")
 
         return ids
 
@@ -88,4 +95,4 @@ class BPETokenizer():
         for id in ids:
             text_encode += self.vocab[id]
 
-        return text_encode.decode('utf-8')
+        return text_encode.decode('utf-8', errors="replace")
