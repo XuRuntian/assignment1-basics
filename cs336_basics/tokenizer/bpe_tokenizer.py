@@ -2,7 +2,7 @@ from collections.abc import Iterable, Iterator
 # from cs336_basics.tokenizer.train import *
 import json
 import regex as re
-# PYTEST_DISABLE_PLUGIN_AUTOLOAD=1  uv run pytest tests/test_tokenizer.py::test_address_roundtrip -v没通过
+# PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest tests/test_tokenizer.py::test_encode_iterable_tinystories_sample_roundtrip -v没通过
 class BPETokenizer():
     def __init__(self, vocab: dict[int, bytes], merges: list[tuple[bytes, bytes]], special_token: list[str] | None =None):
         self.vocab = vocab
@@ -41,7 +41,8 @@ class BPETokenizer():
             pattern = "("+ "|".join(re.escape(token) for token in sorted(self.spcial_token, key=len, reverse=True)) + ")" #正则表达组捕获
             parts = re.split(pattern, text)
         else:
-            parts = text
+            parts = [text]
+            self.spcial_token = []
         ids = []
         # 分割为每个词语
         for part in parts:
