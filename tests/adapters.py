@@ -35,6 +35,7 @@ def run_linear(
     return linear(in_features)
     # raise NotImplementedError
 
+from cs336_basics.model.embedding import Embedding
 
 def run_embedding(
     vocab_size: int,
@@ -54,8 +55,11 @@ def run_embedding(
     Returns:
         Float[Tensor, "... d_model"]: Batch of embeddings returned by your Embedding layer.
     """
-
-    raise NotImplementedError
+    embedding = Embedding(num_embeddings=vocab_size, embedding_dim=d_model)
+    saved_state = {"weight": weights}
+    embedding.load_state_dict(saved_state)
+    return embedding(token_ids)
+    # raise NotImplementedError
 
 
 def run_swiglu(
