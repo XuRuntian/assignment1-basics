@@ -61,7 +61,7 @@ def run_embedding(
     return embedding(token_ids)
     # raise NotImplementedError
 
-
+from cs336_basics.model.swiglu import SwiGlu
 def run_swiglu(
     d_model: int,
     d_ff: int,
@@ -91,7 +91,12 @@ def run_swiglu(
     # swiglu.w1.weight.data = w1_weight
     # swiglu.w2.weight.data = w2_weight
     # swiglu.w3.weight.data = w3_weight
-    raise NotImplementedError
+    swiglu = SwiGlu(d_model=d_model, d_ff=d_ff)
+    swiglu.w1.weight.data = w1_weight
+    swiglu.w2.weight.data = w2_weight
+    swiglu.w3.weight.data = w3_weight
+    return swiglu(in_features)
+    # raise NotImplementedError
 
 
 def run_scaled_dot_product_attention(
