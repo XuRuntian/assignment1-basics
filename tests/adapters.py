@@ -437,7 +437,7 @@ def run_get_batch(
     """
     raise NotImplementedError
 
-
+from cs336_basics.model.softmax import SoftMax
 def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, " ..."]:
     """
     Given a tensor of inputs, return the output of softmaxing the given `dim`
@@ -451,7 +451,9 @@ def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, "
         Float[Tensor, "..."]: Tensor of with the same shape as `in_features` with the output of
         softmax normalizing the specified `dim`.
     """
-    raise NotImplementedError
+    softmax = SoftMax(dim=dim)
+    return softmax(in_features)
+    # raise NotImplementedError
 
 
 def run_cross_entropy(
