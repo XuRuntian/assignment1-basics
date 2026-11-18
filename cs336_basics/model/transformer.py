@@ -8,7 +8,6 @@ from .multihead_self_attention import MHA
 from .swiglu import SwiGlu
 from .embedding import Embedding
 from .linear import Linear
-from .softmax import SoftMax
 
 class TransformerBlock(nn.Module):
     def __init__(self, 
