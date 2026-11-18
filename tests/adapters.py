@@ -231,7 +231,7 @@ def run_rope(
     return rope(in_query_or_key, token_positions)
     # raise NotImplementedError
 
-
+from cs336_basics.model.transformer import TransformerBlock
 def run_transformer_block(
     d_model: int,
     num_heads: int,
@@ -302,7 +302,15 @@ def run_transformer_block(
         Float[Tensor, "batch sequence_length d_model"] Tensor with the output of
         running the Transformer block on the input features while using RoPE.
     """
-    raise NotImplementedError
+    transformer_block = TransformerBlock(d_model=d_model,
+                                         num_heads=num_heads,
+                                         d_ff=d_ff,
+                                         max_seq_len=max_seq_len,
+                                         theta=theta
+                                         )
+    transformer_block.load_state_dict(weights)
+    return transformer_block(in_features)
+    # raise NotImplementedError
 
 
 def run_transformer_lm(

@@ -1,9 +1,8 @@
 from torch import nn, Tensor
 import torch
 from .linear import Linear
-from jaxtyping import Bool, Float, Int
+from jaxtyping import Float, Int
 from einops import rearrange
-import einops
 from .scaled_dot_product_attention import ScaledDotProductAttention
 from .rope import RoPE
 class MHA(nn.Module):
@@ -13,28 +12,31 @@ class MHA(nn.Module):
             self.use_rope = True
         else:
             self.use_rope = False
-        self.num_heads = num_heads
-        d_k = d_model // num_heads 
-        d_v = d_model // num_heads
-        self.q_proj_weight = Linear(
+        if  d_model % num_heads == 0 :
+            self.num_heads = num_heads
+            d_k = d_model // num_heads 
+            d_v = d_model // num_heads
+        else:
+            raise ValueError
+        self.q_proj = Linear(
             in_features=d_model , out_features=num_heads * d_k, device=device, dtype=dtype 
         )
-        self.k_proj_weight = Linear(
+        self.k_proj = Linear(
             in_features=d_model , out_features=num_heads * d_k, device=device, dtype=dtype
         )
-        self.v_proj_weight = Linear(
+        self.v_proj = Linear(
             in_features=d_model , out_features=num_heads * d_v, device=device, dtype=dtype
         )
-        self.o_proj_weight = Linear(
+        self.output_proj = Linear(
             in_features=num_heads * d_v, out_features=d_model, device=device, dtype=dtype
         )
         self.scaled_dot_product_attention =  ScaledDotProductAttention()
         if self.use_rope:
             self.rope = RoPE(theta=theta, d_k=d_k, max_seq_len=max_seq_len, device=device)
     def forward(self, x: Float[Tensor, " ... sequence_length d_model"], token_positions: Int[Tensor, " ... sequence_length"] | None = None):
-        q = self.q_proj_weight(x)
-        k = self.k_proj_weight(x)
-        v = self.v_proj_weight(x)
+        q = self.q_proj(x)
+        k = self.k_proj(x)
+        v = self.v_proj(x)
 
         q_s = rearrange(
             q, "... s (h d) -> ... h s d", h = self.num_heads
@@ -62,5 +64,5 @@ class MHA(nn.Module):
             attention_heads, "... h s d -> ... s (h d)"
         )
         
-        multi_head_attention = self.o_proj_weight(attention)
+        multi_head_attention = self.output_proj(attention)
         return multi_head_attention
