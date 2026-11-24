@@ -528,7 +528,7 @@ def get_adamw_cls() -> Any:
     return AdamW
     # raise NotImplementedError
 
-
+from cs336_basics.training.learning_rate_schedule import LrCosSchedule
 def run_get_lr_cosine_schedule(
     it: int,
     max_learning_rate: float,
@@ -554,7 +554,13 @@ def run_get_lr_cosine_schedule(
     Returns:
         Learning rate at the given iteration under the specified schedule.
     """
-    raise NotImplementedError
+    lr_cos_schedule = LrCosSchedule(max_learning_rate=max_learning_rate,
+                                    min_learning_rate=min_learning_rate,
+                                    warmup_iters=warmup_iters,
+                                    cosine_cycle_iters=cosine_cycle_iters
+                                    )
+    return lr_cos_schedule.get_lr(it=it)
+    # raise NotImplementedError
 
 
 def run_save_checkpoint(
