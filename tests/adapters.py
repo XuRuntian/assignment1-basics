@@ -447,7 +447,7 @@ def run_silu(in_features: Float[Tensor, " ..."]) -> Float[Tensor, " ..."]:
     """
     raise NotImplementedError
 
-
+from cs336_basics.training.data_loader import TokenBatchSampler
 def run_get_batch(
     dataset: npt.NDArray, batch_size: int, context_length: int, device: str
 ) -> tuple[torch.Tensor, torch.Tensor]:
@@ -468,7 +468,9 @@ def run_get_batch(
         is the sampled input sequences, and the second tuple item is the corresponding
         language modeling labels.
     """
-    raise NotImplementedError
+    data_loader = TokenBatchSampler(batch_size=batch_size, context_length=context_length, device=device)
+    return data_loader.get_batch(dataset=dataset)
+    # raise NotImplementedError
 
 from cs336_basics.model.softmax import SoftMax
 def run_softmax(in_features: Float[Tensor, " ..."], dim: int) -> Float[Tensor, " ..."]:
