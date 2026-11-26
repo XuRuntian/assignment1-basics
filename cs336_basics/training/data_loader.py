@@ -16,8 +16,8 @@ class TokenBatchSampler():
         dataset 是一个一维 NumPy 整数数组，里面按顺序保存已经分词并编码好的 token ID。
         """
         data_length = len(dataset)
-        inputs = np.empty((self.batch_size, self.context_length))
-        targets = np.empty((self.batch_size, self.context_length))
+        inputs = np.empty((self.batch_size, self.context_length), dtype=int) # token id是整数
+        targets = np.empty((self.batch_size, self.context_length), dtype=int)
 
         inputs_start_nums = self.rng.integers(low=0, high=data_length - self.context_length, size=self.batch_size)
 
